@@ -25,6 +25,7 @@ import accesoDatos.DatosException;
 import accesoDatos.OperacionesDAO;
 import config.Configuracion;
 import modelo.ModeloException;
+import modelo.SesionUsuario;
 import modelo.Simulacion;
 import modelo.Simulacion.EstadoSimulacion;
 import modelo.Usuario;
@@ -34,12 +35,15 @@ public class SimulacionesDAO implements OperacionesDAO {
 
 private static SimulacionesDAO instance;
 	
+	//Singleton Nico
 	private ObjectContainer db;
 	
+	//Nico
 	private SimulacionesDAO() {
 		db = Conexion.getInstance();
 	}
-
+	
+	//Nico
 	public static SimulacionesDAO getInstance() {
 		if (instance == null) {
 			instance = new SimulacionesDAO();
@@ -47,7 +51,7 @@ private static SimulacionesDAO instance;
 		return instance;
 	}
 	
-	//Se usa 
+	//Se usa Nico
 	@Override
 	public Simulacion obtener(String id) {
 		assert id != null;
@@ -66,7 +70,7 @@ private static SimulacionesDAO instance;
 		return null;
 	}
 
-	//Se usa
+	//Se usa Nico
     @Override
     public List obtenerTodos() {
         Query query = db.query();
@@ -77,11 +81,22 @@ private static SimulacionesDAO instance;
 
 	
 	public List<Simulacion> obtenerTodasMismoUsr(String idUsr) throws DatosException {
-		return null;
+		assert idUsr != null;
+		
+		Query query = db.query();
+		query.constrain(Simulacion.class);
+		query.descend("usr").descend("id").constrain(idUsr);
+		ObjectSet<Simulacion> result = query.execute();
+		
+		if(result.size() > 0) {
+			return result;
+		}else {
+			throw new DatosException("No existe ninguna simulacion de " + idUsr + ".");
+		}
 	}
 	
 	
-	 
+	 //Nico
 	private void cargarPredeterminados() {
 		try {
 			Simulacion simulacionDemo;
@@ -99,7 +114,7 @@ private static SimulacionesDAO instance;
 		}
 	}
 	
-	
+	//Emi
 	private List<Simulacion> separarSimulacionesUsr(int ultima) {
 		Query query = db.query();
 		query.constrain(Simulacion.class);
@@ -113,7 +128,7 @@ private static SimulacionesDAO instance;
 	}
 	
 	
-	//Se usa
+	//Se usa Emi
 	public void alta(Object obj) throws DatosException  {
 		assert obj != null;
 		Simulacion simulacionNueva = (Simulacion) obj;
@@ -127,32 +142,67 @@ private static SimulacionesDAO instance;
 	//Se usa
 	@Override
 	public Simulacion baja(String idSimulacion) throws DatosException  {
-		return null;
+		assert idSimulacion != null;
+		Simulacion simulacionBD = obtener(idSimulacion);
+		if(simulacionBD != null) {
+			db.delete(simulacionBD);
+			return simulacionBD;
+		} else {
+			throw new DatosException("SimulacionesDAO.baja: " + idSimulacion + " no existe");
+		}
 	}
 	
 	//Se usa
 	@Override
 	public void actualizar(Object obj) throws DatosException  {
+		assert obj != null;
+		Simulacion simulacionBD = obtener(((Simulacion) obj).getId());
+		Simulacion simulacionRef = (Simulacion) obj;
+		if(simulacionBD != null) {
+			simulacionBD.setEstado(simulacionRef.getEstado());
+			simulacionBD.setFecha(simulacionRef.getFecha());
+			simulacionBD.setUsr(simulacionRef.getUsr());
+			db.store(simulacionBD);
+		}else {
+			throw new DatosException("SimulacionesDAO.actualizar: simulacion no encontrada");
+		}
 	}
 
 	//Se usa
 	@Override
 	public String listarDatos() {
-		return null;
+		StringBuffer result = new StringBuffer();
+		Query query = db.query();
+		query.constrain(Simulacion.class);		
+		ObjectSet <Simulacion> listaS = query.execute();
+		while (listaS.hasNext()) {
+			result.append(listaS.next().toString()+("\n")) ;
+		}
+		return result.toString();
+		
 	}
 
 	//Se usa
 	@Override
 	public String listarId() {
-		return null;
+		StringBuffer result = new StringBuffer();
+		Query query = db.query();
+		query.constrain(SesionUsuario.class);
+		query.descend("simulacion").descend("id");
+		ObjectSet <Simulacion> listaIdSes = query.execute();
+		while (listaIdSes.hasNext()) {
+			result.append(listaIdSes.next().toString()+("\n")) ;
+		}
+		return result.toString();
 	}
 
 	//Se usa
     @Override
     public void borrarTodo() {
+        ObjectSet<Simulacion> result = db.queryByExample(Simulacion.class);
+        while(result.hasNext()) {
+            db.delete(result.next());
+        }
     }
-
-	@Override
-	public void cerrar() {
-	}
+    
 } //class
